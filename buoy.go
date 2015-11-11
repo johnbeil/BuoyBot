@@ -8,28 +8,17 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
+
+	"github.com/ChimeraCoder/anaconda"
 )
 
-type Configuration struct {
-	APIKey    string `json:"APIKey"`
-	APISecret string `json:APISecret"`
-}
+var api *anaconda.TwitterApi
 
 func main() {
+	fmt.Println(".....starting buoybot")
 
-	// import Twitter OAuth credentials from config.json
-	var configuration Configuration
-	file, err := ioutil.ReadFile("config.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = json.Unmarshal(file, &configuration)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(configuration)
+	api = anaconda.NewTwitterApi(TOKEN, TOKEN_SECRET)
+	anaconda.SetConsumerKey(CONSUMER_KEY)
+	anaconda.SetConsumerSecret(CONSUMER_SECRET)
 }

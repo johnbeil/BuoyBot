@@ -110,13 +110,6 @@ func main() {
 
 		// Diagnostics from Get
 		fmt.Println("Status:", response.Status)
-		// fmt.Printf(string(rawdata))
-		// fmt.Println(string(rawdata[188:281]))
-		// fmt.Println("Status Code:", response.StatusCode)
-		// fmt.Println("Protocol:", response.Proto)
-		// fmt.Println("Length rawdata:", len(rawdata))
-		// fmt.Println("Len observation:", len(rawdata[188:281]))
-		// fmt.Println("rawdata variable type:", reflect.TypeOf(rawdata))
 	}
 
 	// print raw data for most recent observation
@@ -162,22 +155,10 @@ func main() {
 	// t := time.Date(datafield[0], datafield[1], datafield[2], datafield[3], datafield[4], 0, 0, time.UTC)
 	// fmt.Println(t)
 
-	// print formatted output to console
-	// fmt.Println("\nSF Buoy at", buoydata.Date, buoydata.Time, "UTC")
-	// fmt.Println("Swell:", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at", datafield[9], "sec from", wavecardinal)
-	// fmt.Println("Wind:", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from", windcardinal)
-	// fmt.Println("Water Temp (F):", watertempF)
-	// fmt.Println("Air Temp (F):", airtempF)
-
 	// concatenate data to output and print to console
 	output := fmt.Sprint("\nSF Buoy at ", buoydata.Date, " ", buoydata.Time, " UTC\n", "Swell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind:", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nWater Temp:", watertempF, "F\nAir Temp:", airtempF, "F")
 	fmt.Println(output)
-	// fmt.Println("Wave Height:", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft")
-	// fmt.Println("Dominant Wave Period:", datafield[9], "sec")
-	// fmt.Println("Mean Wave Direction:", wavecardinal)
-	// fmt.Println("Wind Direction:", windcardinal)
-	// fmt.Println("Wind Speed:", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph")
-	// fmt.Println("datafield variable type:", reflect.TypeOf(datafield))
+
 	elapsed := time.Since(start)
 	fmt.Println("\nFetch took:", elapsed, "\n")
 }

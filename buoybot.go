@@ -14,12 +14,18 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ChimeraCoder/anaconda"
 )
+
+// anaconda package for twitter api
+var api *anaconda.TwitterApi
 
 // First two rows of text file, fixed width delimited, used for debugging
 const header = "#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft"
@@ -84,6 +90,16 @@ func direction(deg int64) string {
 	}
 }
 
+func Round(f float64) float64 {
+	return math.Floor(f + .5)
+}
+
+// round input to defined number of decimals
+func RoundPlus(f float64, places int) float64 {
+	shift := math.Pow(10, float64(places))
+	return Round(f*shift) / shift
+}
+
 func main() {
 	// start timer
 	start := time.Now()
@@ -138,27 +154,47 @@ func main() {
 	// convert air temp from C to F
 	airtempC, _ := strconv.ParseFloat(datafield[13], 64)
 	airtempF := airtempC*9/5 + 32
+	airtempF = RoundPlus(airtempF, 1)
 
 	// convert water temp from C to F
 	watertempC, _ := strconv.ParseFloat(datafield[14], 64)
 	watertempF := watertempC*9/5 + 32
+	watertempF = RoundPlus(watertempF, 1)
 
-	var buoydata BuoyData
+	// process date/time and convert to PST
+	rawtime := strings.Join(datafield[0:5], " ")
+	t, err := time.Parse("2006 01 02 15 04", rawtime)
+	if err != nil {
+		fmt.Println(err)
+	}
+	loc, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		fmt.Println(err)
+	}
+	t = t.In(loc)
+	// fmt.Println(t.Format(time.RFC822))
 
-	// concatenate date
-	buoydata.Date = strings.Join(datafield[0:3], "-")
-
-	// concatenate time
-	buoydata.Time = strings.Join(datafield[3:5], ":")
-
-	// prepare time
-	// t := time.Date(datafield[0], datafield[1], datafield[2], datafield[3], datafield[4], 0, 0, time.UTC)
-	// fmt.Println(t)
+	// var buoydata BuoyData
 
 	// concatenate data to output and print to console
-	output := fmt.Sprint("\nSF Buoy at ", buoydata.Date, " ", buoydata.Time, " UTC\n", "Swell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind:", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nWater Temp:", watertempF, "F\nAir Temp:", airtempF, "F")
+	output := fmt.Sprint("\nSF Buoy at ", t.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind:", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nWater Temp:", watertempF, "F\nAir Temp:", airtempF, "F")
 	fmt.Println(output)
 
+	// stop timer and print output
 	elapsed := time.Since(start)
-	fmt.Println("\nFetch took:", elapsed, "\n")
+	fmt.Println("\nFetch took:", elapsed)
+
+	// twitter buoybot
+	fmt.Println("\n.....starting buoybot")
+
+	api = anaconda.NewTwitterApi(Token, TokenSecret)
+	anaconda.SetConsumerKey(ConsumerKey)
+	anaconda.SetConsumerSecret(ConsumerSecret)
+
+	searchResult, _ := api.GetSearch("golang", nil)
+	for _, tweet := range searchResult.Statuses {
+		fmt.Println(tweet.Text)
+	}
+	fmt.Println("....terminating buoybot")
+
 }

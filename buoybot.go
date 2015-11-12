@@ -12,6 +12,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -103,6 +104,7 @@ func RoundPlus(f float64, places int) float64 {
 func main() {
 	// start timer
 	start := time.Now()
+	fmt.Println("Starting BuoyBot...")
 	fmt.Println("Fetching latest data...")
 
 	// establish variable to hold data from most recent observation
@@ -177,24 +179,46 @@ func main() {
 	// var buoydata BuoyData
 
 	// concatenate data to output and print to console
-	output := fmt.Sprint("\nSF Buoy at ", t.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind:", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nWater Temp:", watertempF, "F\nAir Temp:", airtempF, "F")
-	fmt.Println(output)
+	output := fmt.Sprint("\nSF Buoy at ", t.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind: ", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nWater Temp: ", watertempF, "F\nAir Temp: ", airtempF, "F")
+	// fmt.Println(output)
 
+	// TWITTER BOT
 	// stop timer and print output
 	elapsed := time.Since(start)
-	fmt.Println("\nFetch took:", elapsed)
+	fmt.Println("Fetch took:", elapsed)
 
-	// twitter buoybot
-	fmt.Println("\n.....starting buoybot")
-
-	api = anaconda.NewTwitterApi(Token, TokenSecret)
-	anaconda.SetConsumerKey(ConsumerKey)
-	anaconda.SetConsumerSecret(ConsumerSecret)
-
-	searchResult, _ := api.GetSearch("golang", nil)
-	for _, tweet := range searchResult.Statuses {
-		fmt.Println(tweet.Text)
+	// struct to store credentials
+	var credentials struct {
+		UserName       string `json:UserName`
+		ConsumerKey    string `json:ConsumerKey`
+		ConsumerSecret string `json:ConsumerSecret`
+		Token          string `json:Token`
+		TokenSecret    string `json:TokenSecret`
 	}
-	fmt.Println("....terminating buoybot")
+
+	// unmarshal access credentials from config.json
+	configFile, err := os.Open("config.json")
+	if err != nil {
+		fmt.Println("opening config file", err.Error())
+	}
+	jsonParser := json.NewDecoder(configFile)
+	if err = jsonParser.Decode(&credentials); err != nil {
+		fmt.Println("parsing config file", err.Error())
+	}
+
+	// load anaconda
+	api = anaconda.NewTwitterApi(credentials.Token, credentials.TokenSecret)
+	anaconda.SetConsumerKey(credentials.ConsumerKey)
+	anaconda.SetConsumerSecret(credentials.ConsumerSecret)
+
+	// post tweet
+	tweet, err := api.PostTweet(output, nil)
+	if err != nil {
+		fmt.Println("update error:", err)
+	}
+	fmt.Println("Tweet contents:")
+	fmt.Println(tweet.Text)
+
+	fmt.Println("\n...Terminating buoybot")
 
 }

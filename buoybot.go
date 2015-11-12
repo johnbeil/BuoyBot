@@ -2,8 +2,9 @@
 // Use of this source code is governed by the MIT License.
 // The MIT license that can be found in the LICENSE file.
 
-// BuoyBot 0.1
-// Obtains latest data for NBDC Station 46026
+// BuoyBot 1.1
+// Obtains latest observation for NBDC Station 46026
+// Tweets observation from @SFBuoy
 // Each line contains 19 data points
 // Headers are in the first two lines
 // Latest data is in the third line
@@ -25,26 +26,150 @@ import (
 	"github.com/ChimeraCoder/anaconda"
 )
 
-// anaconda package for twitter api
-var api *anaconda.TwitterApi
-
 // First two rows of text file, fixed width delimited, used for debugging
 const header = "#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft"
 
+// struct to store observation data
 type BuoyData struct {
 	Date                  string
-	Time                  string
-	Location              string
-	WindDirection         int
+	WindDirection         string
 	WindSpeed             float64
 	SignificantWaveHeight float64
 	DominantWavePeriod    int
 	AveragePeriod         float64
-	MeanWaveDirection     int
-	AtmosphericPressure   float64
-	PressureTendency      float64
+	MeanWaveDirection     string
 	AirTemperature        float64
 	WaterTemperature      float64
+}
+
+// struct to store credentials
+type Config struct {
+	UserName       string `json:UserName`
+	ConsumerKey    string `json:ConsumerKey`
+	ConsumerSecret string `json:ConsumerSecret`
+	Token          string `json:Token`
+	TokenSecret    string `json:TokenSecret`
+}
+
+func main() {
+	fmt.Println("Starting BuoyBot...")
+
+	config := Config{}
+	loadConfig(&config)
+
+	// var data string
+	var noaaUrl string = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
+
+	var api *anaconda.TwitterApi
+	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
+	anaconda.SetConsumerKey(config.ConsumerKey)
+	anaconda.SetConsumerSecret(config.ConsumerSecret)
+
+	c := time.Tick(10800 * time.Second)
+	for _ = range c {
+
+		body := getDataFromURL(noaaUrl)
+		output := parseData(body)
+
+		//  create go routine and post update every 6 hours
+		//  60 sec * 60 min * 6 hours = 21600 seconds
+		// go updateAtInterval(21600, url, config)
+		// select {} // this will cause the program to run forever
+
+		// print raw data for most recent observation
+		// fmt.Println(header)
+		// fmt.Println(data)
+
+		// post tweet
+		tweet, err := api.PostTweet(output, nil)
+		if err != nil {
+			fmt.Println("update error:", err)
+		}
+		fmt.Println("Tweet contents:")
+		fmt.Println(tweet.Text)
+
+		fmt.Println("\n...hibernating")
+	}
+
+}
+
+func getDataFromURL(url string) (body []byte) {
+	fmt.Println("...Fetching data...")
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error fetching data:", err)
+	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("ioutil error:", err)
+	}
+	fmt.Println("Status:", resp.Status)
+	return
+}
+
+// load config
+func loadConfig(config *Config) {
+	// Get config
+	file, _ := os.Open("config.json")
+	decoder := json.NewDecoder(file)
+	err := decoder.Decode(&config)
+	if err != nil {
+		fmt.Println("error loading config.json:", err)
+	}
+}
+
+// process latest observation
+func parseData(d []byte) string {
+	var data string = string(d[188:281])
+	// convert most recent observation into array of strings
+	datafield := strings.Fields(data)
+
+	// convert wave height from meters to feet
+	waveheightmeters, _ := strconv.ParseFloat(datafield[8], 64)
+	waveheightfeet := waveheightmeters * 3.28084
+
+	// convert wave direction from degrees to cardinal
+	wavedegrees, _ := strconv.ParseInt(datafield[11], 0, 64)
+	wavecardinal := direction(wavedegrees)
+
+	// convert wind speed from m/s to mph
+	windspeedms, _ := strconv.ParseFloat((datafield[6]), 64)
+	windspeedmph := windspeedms / 0.44704
+
+	// convert wind direction from degrees to cardinal
+	winddegrees, _ := strconv.ParseInt(datafield[5], 0, 64)
+	windcardinal := direction(winddegrees)
+
+	// convert air temp from C to F
+	airtempC, _ := strconv.ParseFloat(datafield[13], 64)
+	airtempF := airtempC*9/5 + 32
+	airtempF = RoundPlus(airtempF, 1)
+
+	// convert water temp from C to F
+	watertempC, _ := strconv.ParseFloat(datafield[14], 64)
+	watertempF := watertempC*9/5 + 32
+	watertempF = RoundPlus(watertempF, 1)
+
+	// process date/time and convert to PST
+	rawtime := strings.Join(datafield[0:5], " ")
+	t, err := time.Parse("2006 01 02 15 04", rawtime)
+	if err != nil {
+		fmt.Println(err)
+	}
+	loc, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		fmt.Println(err)
+	}
+	t = t.In(loc)
+	// fmt.Println(t.Format(time.RFC822))
+
+	// var buoydata BuoyData
+
+	// concatenate data to output and print to console
+	output := fmt.Sprint("\nSF Buoy at ", t.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind: ", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nTemp: Air ", airtempF, "F / Water: ", watertempF, "F")
+	// fmt.Println(output)
+	return output
 }
 
 // given degrees returns cardinal direction
@@ -91,6 +216,7 @@ func direction(deg int64) string {
 	}
 }
 
+// round input to nearest integer
 func Round(f float64) float64 {
 	return math.Floor(f + .5)
 }
@@ -99,126 +225,4 @@ func Round(f float64) float64 {
 func RoundPlus(f float64, places int) float64 {
 	shift := math.Pow(10, float64(places))
 	return Round(f*shift) / shift
-}
-
-func main() {
-	// start timer
-	start := time.Now()
-	fmt.Println("Starting BuoyBot...")
-	fmt.Println("Fetching latest data...")
-
-	// establish variable to hold data from most recent observation
-	var data string
-
-	// fetch latest buoy data from NBDC in .txt format
-	// TODO: Handel crawl errors
-	response, err := http.Get("http://www.ndbc.noaa.gov/data/realtime2/46026.txt")
-	if err != nil {
-		fmt.Printf("%s", err)
-		os.Exit(1)
-	} else {
-		defer response.Body.Close()
-		rawdata, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			fmt.Printf("%s", err)
-			os.Exit(1)
-		}
-		// extract most recent observation
-		data = string(rawdata[188:281])
-
-		// Diagnostics from Get
-		fmt.Println("Status:", response.Status)
-	}
-
-	// print raw data for most recent observation
-	fmt.Println(header)
-	fmt.Println(data)
-
-	// convert most recent observation into array of strings
-	datafield := strings.Fields(data)
-
-	// convert wave height from meters to feet
-	waveheightmeters, _ := strconv.ParseFloat(datafield[8], 64)
-	waveheightfeet := waveheightmeters * 3.28084
-
-	// convert wave direction from degrees to cardinal
-	wavedegrees, _ := strconv.ParseInt(datafield[11], 0, 64)
-	wavecardinal := direction(wavedegrees)
-
-	// convert wind speed from m/s to mph
-	windspeedms, _ := strconv.ParseFloat((datafield[6]), 64)
-	windspeedmph := windspeedms / 0.44704
-
-	// convert wind direction from degrees to cardinal
-	winddegrees, _ := strconv.ParseInt(datafield[5], 0, 64)
-	windcardinal := direction(winddegrees)
-
-	// convert air temp from C to F
-	airtempC, _ := strconv.ParseFloat(datafield[13], 64)
-	airtempF := airtempC*9/5 + 32
-	airtempF = RoundPlus(airtempF, 1)
-
-	// convert water temp from C to F
-	watertempC, _ := strconv.ParseFloat(datafield[14], 64)
-	watertempF := watertempC*9/5 + 32
-	watertempF = RoundPlus(watertempF, 1)
-
-	// process date/time and convert to PST
-	rawtime := strings.Join(datafield[0:5], " ")
-	t, err := time.Parse("2006 01 02 15 04", rawtime)
-	if err != nil {
-		fmt.Println(err)
-	}
-	loc, err := time.LoadLocation("America/Los_Angeles")
-	if err != nil {
-		fmt.Println(err)
-	}
-	t = t.In(loc)
-	// fmt.Println(t.Format(time.RFC822))
-
-	// var buoydata BuoyData
-
-	// concatenate data to output and print to console
-	output := fmt.Sprint("\nSF Buoy at ", t.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind: ", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nWater Temp: ", watertempF, "F\nAir Temp: ", airtempF, "F")
-	// fmt.Println(output)
-
-	// TWITTER BOT
-	// stop timer and print output
-	elapsed := time.Since(start)
-	fmt.Println("Fetch took:", elapsed)
-
-	// struct to store credentials
-	var credentials struct {
-		UserName       string `json:UserName`
-		ConsumerKey    string `json:ConsumerKey`
-		ConsumerSecret string `json:ConsumerSecret`
-		Token          string `json:Token`
-		TokenSecret    string `json:TokenSecret`
-	}
-
-	// unmarshal access credentials from config.json
-	configFile, err := os.Open("config.json")
-	if err != nil {
-		fmt.Println("opening config file", err.Error())
-	}
-	jsonParser := json.NewDecoder(configFile)
-	if err = jsonParser.Decode(&credentials); err != nil {
-		fmt.Println("parsing config file", err.Error())
-	}
-
-	// load anaconda
-	api = anaconda.NewTwitterApi(credentials.Token, credentials.TokenSecret)
-	anaconda.SetConsumerKey(credentials.ConsumerKey)
-	anaconda.SetConsumerSecret(credentials.ConsumerSecret)
-
-	// post tweet
-	tweet, err := api.PostTweet(output, nil)
-	if err != nil {
-		fmt.Println("update error:", err)
-	}
-	fmt.Println("Tweet contents:")
-	fmt.Println(tweet.Text)
-
-	fmt.Println("\n...Terminating buoybot")
-
 }

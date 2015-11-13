@@ -1,0 +1,8 @@
+//  rename this config.json and add configuration data below
+{
+  "UserName": "twittername", // no @ symbol
+  "ConsumerKey": "xxxxxxxxxx",
+  "ConsumerSecret": "xxxxxxxxxx",
+  "Token": "xxxxxxxxxxxxxxxxxxxx",
+  "TokenSecret": "xxxxxxxxxx"
+}

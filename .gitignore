@@ -52,6 +52,5 @@ Temporary Items
 .apdisk
 
 # Credentials
-config.go
 config.json
 

@@ -89,7 +89,8 @@ func tweetAtInterval(n time.Duration, config Config) {
 	anaconda.SetConsumerKey(config.ConsumerKey)
 	anaconda.SetConsumerSecret(config.ConsumerSecret)
 	for _ = range time.Tick(n * time.Second) {
-
+		t := time.Now()
+		fmt.Println("\n", t)
 		observation := getDataFromURL(noaaUrl)
 		output := parseData(observation)
 

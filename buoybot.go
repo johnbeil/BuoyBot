@@ -29,6 +29,8 @@ import (
 // First two rows of text file, fixed width delimited, used for debugging
 const header = "#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft"
 
+const noaaUrl = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
+
 // struct to store observation data
 type BuoyData struct {
 	Date                  string
@@ -57,46 +59,47 @@ func main() {
 	config := Config{}
 	loadConfig(&config)
 
-	// var data string
-	var noaaUrl string = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
+	go tweetAtInterval(10800, config)
 
+	// use search for debugging so tweets are not posted
+	// go searchAtInterval(30, "buoybot", config)
+
+	select {} // this will cause the program to run forever
+
+}
+
+func searchAtInterval(n time.Duration, query string, config Config) {
 	var api *anaconda.TwitterApi
 	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
 	anaconda.SetConsumerKey(config.ConsumerKey)
 	anaconda.SetConsumerSecret(config.ConsumerSecret)
+	for _ = range time.Tick(n * time.Second) {
+		// t := time.Now()
 
-	c := time.Tick(10800 * time.Second) // post update every three hours
-	for _ = range c {
+		searchResult, _ := api.GetSearch(query, nil)
+		for _, tweet := range searchResult.Statuses {
+			fmt.Println(tweet.Text)
+		}
+	}
+}
 
-		body := getDataFromURL(noaaUrl)
-		output := parseData(body)
+func tweetAtInterval(n time.Duration, config Config) {
+	var api *anaconda.TwitterApi
+	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
+	anaconda.SetConsumerKey(config.ConsumerKey)
+	anaconda.SetConsumerSecret(config.ConsumerSecret)
+	for _ = range time.Tick(n * time.Second) {
 
-		//  create go routine and post update every 6 hours
-		//  60 sec * 60 min * 6 hours = 21600 seconds
-		// go updateAtInterval(21600, url, config)
-		// select {} // this will cause the program to run forever
+		observation := getDataFromURL(noaaUrl)
+		output := parseData(observation)
 
-		// print raw data for most recent observation
-		// fmt.Println(header)
-		// fmt.Println(data)
-		fmt.Println(output)
-
-		// search - use for debugging rather than tweeting
-		// searchResult, _ := api.GetSearch("buoybot", nil)
-		// for _, tweet := range searchResult.Statuses {
-		// 	fmt.Println(tweet.Text)
-		// }
-
-		// post tweet
 		tweet, err := api.PostTweet(output, nil)
 		if err != nil {
 			fmt.Println("update error:", err)
 		} else {
 			fmt.Println(tweet.Text)
 		}
-
 	}
-
 }
 
 func getDataFromURL(url string) (body []byte) {

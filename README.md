@@ -1,12 +1,12 @@
 # BuoyBot
 
-*BuoyBot* is a twitter bot that tweets updates from NBDC Station 46026 (the San Francisco Buoy).
+BuoyBot is a twitter bot that tweets updates from NBDC Station 46026 (the San Francisco Buoy).
 
-BuoyBot is live on Twitter here: https://twitter.com/SFBuoy
+BuoyBot is live on Twitter: https://twitter.com/SFBuoy
 
-Feature requests and contributions are welcome.
+Feature requests and ccode ontributions are welcome.
 
-Feature List:
+Development Roadmap:
 - Reply to @ mentions with latest observation
 - Tweet at defined times rather than defined intervals (i.e. 0000, 0600, 0900, 1200, 1500, 1800)
 - Auto follow people who follow BuoyBot

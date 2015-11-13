@@ -4,7 +4,7 @@ BuoyBot is a twitter bot that tweets updates from NBDC Station 46026 (the San Fr
 
 BuoyBot is live on Twitter: https://twitter.com/SFBuoy
 
-Feature requests and code ontributions are welcome.
+Feature requests and code contributions are welcome.
 
 Development Roadmap:
 - Reply to @ mentions with latest observation

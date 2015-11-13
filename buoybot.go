@@ -44,11 +44,11 @@ type BuoyData struct {
 
 // struct to store credentials
 type Config struct {
-	UserName       string `json:UserName`
-	ConsumerKey    string `json:ConsumerKey`
-	ConsumerSecret string `json:ConsumerSecret`
-	Token          string `json:Token`
-	TokenSecret    string `json:TokenSecret`
+	UserName       string `json:"UserName"`
+	ConsumerKey    string `json:"ConsumerKey"`
+	ConsumerSecret string `json:"ConsumerSecret"`
+	Token          string `json:"Token"`
+	TokenSecret    string `json:"TokenSecret"`
 }
 
 func main() {
@@ -65,7 +65,7 @@ func main() {
 	anaconda.SetConsumerKey(config.ConsumerKey)
 	anaconda.SetConsumerSecret(config.ConsumerSecret)
 
-	c := time.Tick(10800 * time.Second)
+	c := time.Tick(10800 * time.Second) // post update every three hours
 	for _ = range c {
 
 		body := getDataFromURL(noaaUrl)
@@ -79,22 +79,28 @@ func main() {
 		// print raw data for most recent observation
 		// fmt.Println(header)
 		// fmt.Println(data)
+		fmt.Println(output)
+
+		// search - use for debugging rather than tweeting
+		// searchResult, _ := api.GetSearch("buoybot", nil)
+		// for _, tweet := range searchResult.Statuses {
+		// 	fmt.Println(tweet.Text)
+		// }
 
 		// post tweet
 		tweet, err := api.PostTweet(output, nil)
 		if err != nil {
 			fmt.Println("update error:", err)
+		} else {
+			fmt.Println(tweet.Text)
 		}
-		fmt.Println("Tweet contents:")
-		fmt.Println(tweet.Text)
 
-		fmt.Println("\n...hibernating")
 	}
 
 }
 
 func getDataFromURL(url string) (body []byte) {
-	fmt.Println("...Fetching data...")
+	fmt.Println("Fetching data...")
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println("Error fetching data:", err)
@@ -163,8 +169,6 @@ func parseData(d []byte) string {
 	}
 	t = t.In(loc)
 	// fmt.Println(t.Format(time.RFC822))
-
-	// var buoydata BuoyData
 
 	// concatenate data to output and print to console
 	output := fmt.Sprint("\nSF Buoy at ", t.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind: ", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nTemp: Air ", airtempF, "F / Water: ", watertempF, "F")

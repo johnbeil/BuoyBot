@@ -32,8 +32,8 @@ const header = "#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATM
 const noaaUrl = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
 
 // struct to store observation data
-type BuoyData struct {
-	Date                  string
+type Observation struct {
+	Date                  time.Time
 	WindDirection         string
 	WindSpeed             float64
 	SignificantWaveHeight float64
@@ -59,6 +59,12 @@ func main() {
 	config := Config{}
 	loadConfig(&config)
 
+	observationRaw := getDataFromURL(noaaUrl)
+	observationData := parseData(observationRaw)
+	observationOutput := formatObservation(observationData)
+	fmt.Println("current conditions:\n", observationOutput)
+
+	// tweet latest observation every three hours. 10800 = 60 * 60 * 3
 	go tweetAtInterval(10800, config)
 
 	// use search for debugging so tweets are not posted
@@ -90,11 +96,12 @@ func tweetAtInterval(n time.Duration, config Config) {
 	anaconda.SetConsumerSecret(config.ConsumerSecret)
 	for _ = range time.Tick(n * time.Second) {
 		t := time.Now()
-		fmt.Println("\n", t)
-		observation := getDataFromURL(noaaUrl)
-		output := parseData(observation)
+		fmt.Println("\n", t.Format(time.UnixDate))
+		observationRaw := getDataFromURL(noaaUrl)
+		observationData := parseData(observationRaw)
+		observationOutput := formatObservation(observationData)
 
-		tweet, err := api.PostTweet(output, nil)
+		tweet, err := api.PostTweet(observationOutput, nil)
 		if err != nil {
 			fmt.Println("update error:", err)
 		} else {
@@ -130,7 +137,7 @@ func loadConfig(config *Config) {
 }
 
 // process latest observation
-func parseData(d []byte) string {
+func parseData(d []byte) Observation {
 	var data string = string(d[188:281])
 	// convert most recent observation into array of strings
 	datafield := strings.Fields(data)
@@ -174,9 +181,30 @@ func parseData(d []byte) string {
 	t = t.In(loc)
 	// fmt.Println(t.Format(time.RFC822))
 
-	// concatenate data to output and print to console
-	output := fmt.Sprint("\nSF Buoy at ", t.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(waveheightfeet), 'f', 1, 64), "ft at ", datafield[9], " sec from ", wavecardinal, "\nWind: ", strconv.FormatFloat(float64(windspeedmph), 'f', 0, 64), "mph from ", windcardinal, "\nTemp: Air ", airtempF, "F / Water: ", watertempF, "F")
-	// fmt.Println(output)
+	// population observation
+	var o Observation
+	o.Date = t
+	o.WindDirection = windcardinal
+	o.WindSpeed = windspeedmph
+	o.SignificantWaveHeight = waveheightfeet
+	o.DominantWavePeriod, err = strconv.Atoi(datafield[9])
+	if err != nil {
+		fmt.Println("o.AveragePeriod:", err)
+	}
+	o.AveragePeriod, err = strconv.ParseFloat(datafield[10], 64)
+	if err != nil {
+		fmt.Println("o.AveragePeriod:", err)
+	}
+	o.MeanWaveDirection = wavecardinal
+	o.AirTemperature = airtempF
+	o.WaterTemperature = watertempF
+
+	return o
+}
+
+// given Observation returns formatted text
+func formatObservation(o Observation) string {
+	output := fmt.Sprint("\nSF Buoy at ", o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F")
 	return output
 }
 

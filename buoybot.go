@@ -62,7 +62,7 @@ func main() {
 	observationRaw := getDataFromURL(noaaUrl)
 	observationData := parseData(observationRaw)
 	observationOutput := formatObservation(observationData)
-	fmt.Println("current conditions:\n", observationOutput)
+	fmt.Println("\ncurrent conditions:", observationOutput)
 
 	// tweet latest observation every three hours. 10800 = 60 * 60 * 3
 	go tweetAtInterval(10800, config)

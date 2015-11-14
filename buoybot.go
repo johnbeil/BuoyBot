@@ -59,12 +59,10 @@ func main() {
 	config := Config{}
 	loadConfig(&config)
 
-	observationRaw := getDataFromURL(noaaUrl)
-	observationData := parseData(observationRaw)
-	observationOutput := formatObservation(observationData)
-	fmt.Println("\ncurrent conditions:", observationOutput)
+	// tweet current conditions
+	tweetCurrent(config)
 
-	// tweet latest observation every three hours. 10800 = 60 * 60 * 3
+	// tweet latest observation at three hour interval. 10800 = 60 * 60 * 3
 	go tweetAtInterval(10800, config)
 
 	// use search for debugging so tweets are not posted
@@ -86,6 +84,22 @@ func searchAtInterval(n time.Duration, query string, config Config) {
 		for _, tweet := range searchResult.Statuses {
 			fmt.Println(tweet.Text)
 		}
+	}
+}
+
+func tweetCurrent(config Config) {
+	var api *anaconda.TwitterApi
+	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
+	anaconda.SetConsumerKey(config.ConsumerKey)
+	anaconda.SetConsumerSecret(config.ConsumerSecret)
+	observationRaw := getDataFromURL(noaaUrl)
+	observationData := parseData(observationRaw)
+	observationOutput := formatObservation(observationData)
+	tweet, err := api.PostTweet(observationOutput, nil)
+	if err != nil {
+		fmt.Println("update error:", err)
+	} else {
+		fmt.Println(tweet.Text)
 	}
 }
 

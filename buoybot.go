@@ -62,14 +62,7 @@ func main() {
 	// tweet current conditions
 	tweetCurrent(config)
 
-	// tweet latest observation at three hour interval. 10800 = 60 * 60 * 3
-	go tweetAtInterval(10800, config)
-
-	// use search for debugging so tweets are not posted
-	// go searchAtInterval(30, "buoybot", config)
-
-	select {} // this will cause the program to run forever
-
+	fmt.Println("Exiting BuoyBot...")
 }
 
 func searchAtInterval(n time.Duration, query string, config Config) {

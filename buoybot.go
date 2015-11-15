@@ -10,7 +10,7 @@
 // Latest data is in the third line
 // Other lines are not needed
 
-package main
+package main54
 
 import (
 	"encoding/json"
@@ -59,6 +59,9 @@ func main() {
 	config := Config{}
 	loadConfig(&config)
 
+	// Print runtime to console
+	t := time.Now()
+	fmt.Println(t)
 	// tweet current conditions
 	tweetCurrent(config)
 

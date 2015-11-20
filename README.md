@@ -6,9 +6,14 @@ BuoyBot is live on Twitter: https://twitter.com/SFBuoy
 
 Feature requests and code contributions are welcome.
 
-Development Roadmap:
+## Usage
+BuoyBot is designed to be run at pre-defined intervals via cron. All testing has been done on Ubuntu 14.04 LTS.
+
+Crontab.txt contains the cron entry required to run BuoyBot at 0010, 0610, 0910, 1210, 1510, and 1810 daily. BuoyBot runs at 10 minutes past the hour since NBDC observations are taken at 50 minutes past the hour and updates are available approximately 15 minutes thereafter.
+
+Twitter credentials need to be saved in a config.json file. The configexample.json file contains the template that should be used. Note config.json is referenced in an absolute path in the loadConfig function in buoybot.go. This needs to be updated for your local machine.
+
+## Development Roadmap:
 - Reply to @ mentions with latest observation
-- Tweet at defined times rather than defined intervals (i.e. 0000, 0600, 0900, 1200, 1500, 1800)
 - Auto follow people who follow BuoyBot
 - Store history and make observations upon novel observation (e.g. largest wave height, coldest water temp, etc)
-- Develop sentience

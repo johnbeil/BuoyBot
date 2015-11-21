@@ -139,6 +139,7 @@ func getDataFromURL(url string) (body []byte) {
 // load config
 func loadConfig(config *Config) {
 	// Get config
+	// Be sure to update the path below
 	file, _ := os.Open("/home/deploy/gocode/bin/config.json")
 	decoder := json.NewDecoder(file)
 	err := decoder.Decode(&config)

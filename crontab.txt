@@ -7,5 +7,4 @@
 # Change the path to the location of your buoybot executable.
 # Add to crontab by running `crontab -e`
 
-
-10 0,6,9,12,15,18 * * * /home/deploy/gocode/bin/./BuoyBot
+10 0,6,9,12,15,18 * * * /home/deploy/gocode/bin/BuoyBot

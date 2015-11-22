@@ -4,5 +4,7 @@
   "ConsumerKey": "xxxxxxxxxx",
   "ConsumerSecret": "xxxxxxxxxx",
   "Token": "xxxxxxxxxxxxxxxxxxxx",
-  "TokenSecret": "xxxxxxxxxx"
+  "TokenSecret": "xxxxxxxxxx",
+  "CronPath": "/full/path/to/config.json",
+  "DatabasePath": "/full/path/to/observations.db"
 }

@@ -56,6 +56,7 @@ type Config struct {
 func main() {
 	fmt.Println("Starting BuoyBot...")
 
+	// load configuration
 	config := Config{}
 	loadConfig(&config)
 

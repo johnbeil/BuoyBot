@@ -5,10 +5,7 @@
 // BuoyBot 1.1
 // Obtains latest observation for NBDC Station 46026
 // Tweets observation from @SFBuoy
-// Each line contains 19 data points
-// Headers are in the first two lines
-// Latest data is in the third line
-// Other lines are not needed
+// Saves observation to database
 
 package main
 
@@ -34,7 +31,7 @@ const header = "#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATM
 
 const noaaUrl = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
 
-// struct to store observation data
+// Struct to store observation data
 type Observation struct {
 	Date                  time.Time
 	WindDirection         string
@@ -47,7 +44,7 @@ type Observation struct {
 	WaterTemperature      float64
 }
 
-// struct to store credentials
+// Struct to store Twitter and Database credentials
 type Config struct {
 	UserName         string `json:"UserName"`
 	ConsumerKey      string `json:"ConsumerKey"`
@@ -60,6 +57,7 @@ type Config struct {
 	DatabaseName     string `json:"DatabaseName"`
 }
 
+// Variable for database
 var db *sql.DB
 
 func main() {
@@ -68,10 +66,6 @@ func main() {
 	// load configuration
 	config := Config{}
 	loadConfig(&config)
-
-	// Print runtime to console
-	t := time.Now()
-	fmt.Println(t.Format(time.UnixDate))
 
 	// Load database
 	dbinfo := fmt.Sprintf("user=%s password=%s host=%s dbname=%s sslmode=disable",
@@ -83,43 +77,38 @@ func main() {
 	}
 	defer db.Close()
 
+	// Check database connection
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("Error: Could not establish connection with the database.", err)
 	}
 
+	// Get latest observation and store in struct
 	var observation Observation
 	observation = getObservation()
+
+	// Save latest observation in database
 	saveObservation(observation)
 
+	// Tweet observation at 0000, 0600, 0900, 1200, 1500, 1800 PST
+	// Cron job set to run every hour at 10 minutes past
+	t := time.Now()
 	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 9 || t.Hour() == 12 || t.Hour() == 15 || t.Hour() == 18 {
 		tweetCurrent(config, observation)
 	}
 
+	// Shutdown BuoyBot
 	fmt.Println("Exiting BuoyBot...")
 }
 
-func searchAtInterval(n time.Duration, query string, config Config) {
-	var api *anaconda.TwitterApi
-	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
-	anaconda.SetConsumerKey(config.ConsumerKey)
-	anaconda.SetConsumerSecret(config.ConsumerSecret)
-	for _ = range time.Tick(n * time.Second) {
-		// t := time.Now()
-
-		searchResult, _ := api.GetSearch(query, nil)
-		for _, tweet := range searchResult.Statuses {
-			fmt.Println(tweet.Text)
-		}
-	}
-}
-
+// Fetches and parses latest NBDC observation and returns data in Observation struct
 func getObservation() Observation {
 	observationRaw := getDataFromURL(noaaUrl)
 	observationData := parseData(observationRaw)
 	return observationData
 }
 
+// Given Observation struct, saves most recent observation in database
 func saveObservation(o Observation) {
 	_, err := db.Exec("INSERT INTO observations(observationtime, windspeed, winddirection, significantwaveheight, dominantwaveperiod, averageperiod, meanwavedirection, airtemperature, watertemperature) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)", o.Date, o.WindSpeed, o.WindDirection, o.SignificantWaveHeight, o.DominantWavePeriod, o.AveragePeriod, o.MeanWaveDirection, o.AirTemperature, o.WaterTemperature)
 	if err != nil {
@@ -127,6 +116,7 @@ func saveObservation(o Observation) {
 	}
 }
 
+// Given config and observation, tweets latest update
 func tweetCurrent(config Config, o Observation) {
 	var api *anaconda.TwitterApi
 	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
@@ -141,29 +131,8 @@ func tweetCurrent(config Config, o Observation) {
 	}
 }
 
-func tweetAtInterval(n time.Duration, config Config) {
-	var api *anaconda.TwitterApi
-	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
-	anaconda.SetConsumerKey(config.ConsumerKey)
-	anaconda.SetConsumerSecret(config.ConsumerSecret)
-	for _ = range time.Tick(n * time.Second) {
-		t := time.Now()
-		fmt.Println("\n", t.Format(time.UnixDate))
-		observationRaw := getDataFromURL(noaaUrl)
-		observationData := parseData(observationRaw)
-		observationOutput := formatObservation(observationData)
-
-		tweet, err := api.PostTweet(observationOutput, nil)
-		if err != nil {
-			fmt.Println("update error:", err)
-		} else {
-			fmt.Println(tweet.Text)
-		}
-	}
-}
-
+// Given URL, returns raw data with recent observations from NBDC
 func getDataFromURL(url string) (body []byte) {
-	fmt.Println("Fetching data...")
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatal("Error fetching data:", err)
@@ -173,11 +142,11 @@ func getDataFromURL(url string) (body []byte) {
 	if err != nil {
 		log.Fatal("ioutil error reading resp.Body:", err)
 	}
-	fmt.Println("Status:", resp.Status)
+	// fmt.Println("Status:", resp.Status)
 	return
 }
 
-// load config
+// Given path to config.js file, loads credentials
 func loadConfig(config *Config) {
 	// load path to config from CONFIGPATH environment variable
 	configpath := os.Getenv("CONFIGPATH")
@@ -189,8 +158,14 @@ func loadConfig(config *Config) {
 	}
 }
 
-// process latest observation
+// Given raw data, parses latest observation and returns Observation struct
 func parseData(d []byte) Observation {
+	// Each line contains 19 data points
+	// Headers are in the first two lines
+	// Latest observation data is in the third line
+	// Other lines are not needed
+
+	// Extracts relevant data into variable for processing
 	var data string = string(d[188:281])
 	// convert most recent observation into array of strings
 	datafield := strings.Fields(data)
@@ -225,16 +200,15 @@ func parseData(d []byte) Observation {
 	rawtime := strings.Join(datafield[0:5], " ")
 	t, err := time.Parse("2006 01 02 15 04", rawtime)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal("error processing rawtime:", err)
 	}
 	loc, err := time.LoadLocation("America/Los_Angeles")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal("error processing location", err)
 	}
 	t = t.In(loc)
-	// fmt.Println(t.Format(time.RFC822))
 
-	// population observation
+	// Create Observation struct and populate with parsed data
 	var o Observation
 	o.Date = t
 	o.WindDirection = windcardinal
@@ -242,11 +216,11 @@ func parseData(d []byte) Observation {
 	o.SignificantWaveHeight = waveheightfeet
 	o.DominantWavePeriod, err = strconv.Atoi(datafield[9])
 	if err != nil {
-		fmt.Println("o.AveragePeriod:", err)
+		log.Fatal("o.AveragePeriod:", err)
 	}
 	o.AveragePeriod, err = strconv.ParseFloat(datafield[10], 64)
 	if err != nil {
-		fmt.Println("o.AveragePeriod:", err)
+		log.Fatal("o.AveragePeriod:", err)
 	}
 	o.MeanWaveDirection = wavecardinal
 	o.AirTemperature = airtempF
@@ -255,7 +229,7 @@ func parseData(d []byte) Observation {
 	return o
 }
 
-// given Observation returns formatted text
+// Given Observation returns formatted text for tweet
 func formatObservation(o Observation) string {
 	output := fmt.Sprint(o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F")
 	return output
@@ -305,12 +279,12 @@ func direction(deg int64) string {
 	}
 }
 
-// round input to nearest integer
+// Given Float64, round input to nearest integer and return Float64
 func Round(f float64) float64 {
 	return math.Floor(f + .5)
 }
 
-// round input to defined number of decimals
+// Given Float64 and Int, round input to defined number of decimals and return Float64
 func RoundPlus(f float64, places int) float64 {
 	shift := math.Pow(10, float64(places))
 	return Round(f*shift) / shift

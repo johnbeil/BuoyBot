@@ -92,8 +92,9 @@ func main() {
 	observation = getObservation()
 	saveObservation(observation)
 
-	// tweet current conditions
-	// tweetCurrent(config)
+	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 9 || t.Hour() == 12 || t.Hour() == 15 || t.Hour() == 18 {
+		tweetCurrent(config, observation)
+	}
 
 	fmt.Println("Exiting BuoyBot...")
 }
@@ -126,14 +127,12 @@ func saveObservation(o Observation) {
 	}
 }
 
-func tweetCurrent(config Config) {
+func tweetCurrent(config Config, o Observation) {
 	var api *anaconda.TwitterApi
 	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
 	anaconda.SetConsumerKey(config.ConsumerKey)
 	anaconda.SetConsumerSecret(config.ConsumerSecret)
-	observationRaw := getDataFromURL(noaaUrl)
-	observationData := parseData(observationRaw)
-	observationOutput := formatObservation(observationData)
+	observationOutput := formatObservation(o)
 	tweet, err := api.PostTweet(observationOutput, nil)
 	if err != nil {
 		fmt.Println("update error:", err)

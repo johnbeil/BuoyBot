@@ -1,10 +1,13 @@
 # Crontab commands to run BuoyBot at regular intervals.
-# Tested on Ubuntu.
-# Set to run on the 10th minute at midnight, 6am, 9am, 12pm, 3pm and 6pm.
+# Tested on Ubuntu 14.04.
+# Set to run on the 10th minute of every hour.
 # Set to run every day of the month.
 # Set to run every month of the year.
 # Set to run on every day of the week.
 # Change the path to the location of your buoybot executable.
+# Loads user env variables, must set CONFIGPATH to the location of config.json
+# Logs last run to buoybot.log, useful for debugging
+
 # Add to crontab by running `crontab -e`
 
-10 0,6,9,12,15,18 * * * /home/deploy/gocode/bin/BuoyBot
+10 * * * * . $HOME/.profile; /home/deploy/gocode/bin/BuoyBot > /home/deploy/buoybot.log 2>&1

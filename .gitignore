@@ -53,6 +53,3 @@ Temporary Items
 
 # Credentials
 config.json
-
-# SQLite3 Database
-observations.db

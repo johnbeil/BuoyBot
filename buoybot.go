@@ -13,9 +13,11 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -24,6 +26,7 @@ import (
 	"time"
 
 	"github.com/ChimeraCoder/anaconda"
+	_ "github.com/lib/pq"
 )
 
 // First two rows of text file, fixed width delimited, used for debugging
@@ -46,12 +49,18 @@ type Observation struct {
 
 // struct to store credentials
 type Config struct {
-	UserName       string `json:"UserName"`
-	ConsumerKey    string `json:"ConsumerKey"`
-	ConsumerSecret string `json:"ConsumerSecret"`
-	Token          string `json:"Token"`
-	TokenSecret    string `json:"TokenSecret"`
+	UserName         string `json:"UserName"`
+	ConsumerKey      string `json:"ConsumerKey"`
+	ConsumerSecret   string `json:"ConsumerSecret"`
+	Token            string `json:"Token"`
+	TokenSecret      string `json:"TokenSecret"`
+	DatabaseUrl      string `json:"DatabaseUrl"`
+	DatabaseUser     string `json:"DatabaseUser"`
+	DatabasePassword string `json:"DatabasePassword"`
+	DatabaseName     string `json:"DatabaseName"`
 }
+
+var db *sql.DB
 
 func main() {
 	fmt.Println("Starting BuoyBot...")
@@ -62,10 +71,29 @@ func main() {
 
 	// Print runtime to console
 	t := time.Now()
-	fmt.Println(t)
+	fmt.Println(t.Format(time.UnixDate))
+
+	// Load database
+	dbinfo := fmt.Sprintf("user=%s password=%s host=%s dbname=%s sslmode=disable",
+		config.DatabaseUser, config.DatabasePassword, config.DatabaseUrl, config.DatabaseName)
+	var err error
+	db, err = sql.Open("postgres", dbinfo)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Error: Could not establish connection with the database.", err)
+	}
+
+	var observation Observation
+	observation = getObservation()
+	saveObservation(observation)
 
 	// tweet current conditions
-	tweetCurrent(config)
+	// tweetCurrent(config)
 
 	fmt.Println("Exiting BuoyBot...")
 }
@@ -82,6 +110,19 @@ func searchAtInterval(n time.Duration, query string, config Config) {
 		for _, tweet := range searchResult.Statuses {
 			fmt.Println(tweet.Text)
 		}
+	}
+}
+
+func getObservation() Observation {
+	observationRaw := getDataFromURL(noaaUrl)
+	observationData := parseData(observationRaw)
+	return observationData
+}
+
+func saveObservation(o Observation) {
+	_, err := db.Exec("INSERT INTO observations(observationtime, windspeed, winddirection, significantwaveheight, dominantwaveperiod, averageperiod, meanwavedirection, airtemperature, watertemperature) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)", o.Date, o.WindSpeed, o.WindDirection, o.SignificantWaveHeight, o.DominantWavePeriod, o.AveragePeriod, o.MeanWaveDirection, o.AirTemperature, o.WaterTemperature)
+	if err != nil {
+		log.Fatal("Error saving observation:", err)
 	}
 }
 
@@ -126,12 +167,12 @@ func getDataFromURL(url string) (body []byte) {
 	fmt.Println("Fetching data...")
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Error fetching data:", err)
+		log.Fatal("Error fetching data:", err)
 	}
 	defer resp.Body.Close()
 	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("ioutil error:", err)
+		log.Fatal("ioutil error reading resp.Body:", err)
 	}
 	fmt.Println("Status:", resp.Status)
 	return
@@ -139,13 +180,13 @@ func getDataFromURL(url string) (body []byte) {
 
 // load config
 func loadConfig(config *Config) {
-	// Get config
-	// Be sure to update the path below
-	file, _ := os.Open("/home/deploy/gocode/bin/config.json")
+	// load path to config from CONFIGPATH environment variable
+	configpath := os.Getenv("CONFIGPATH")
+	file, _ := os.Open(configpath)
 	decoder := json.NewDecoder(file)
 	err := decoder.Decode(&config)
 	if err != nil {
-		fmt.Println("error loading config.json:", err)
+		log.Fatal("Error loading config.json:", err)
 	}
 }
 

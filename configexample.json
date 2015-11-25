@@ -5,6 +5,8 @@
   "ConsumerSecret": "xxxxxxxxxx",
   "Token": "xxxxxxxxxxxxxxxxxxxx",
   "TokenSecret": "xxxxxxxxxx",
-  "CronPath": "/full/path/to/config.json",
-  "DatabasePath": "/full/path/to/observations.db"
+  "DatabaseUrl": "xx.xxx.xx.xx",
+  "DatabaseUser": "xxxxx",
+  "DatabasePassword": "xxxxxxxx",
+  "DatabaseName": "xxxx"
 }

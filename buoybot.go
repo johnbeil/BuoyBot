@@ -1,6 +1,6 @@
 // Copyright (c) 2015 John Beil.
 // Use of this source code is governed by the MIT License.
-// The MIT license that can be found in the LICENSE file.
+// The MIT license can be found in the LICENSE file.
 
 // BuoyBot 1.1
 // Obtains latest observation for NBDC Station 46026

@@ -4,8 +4,9 @@
 
 // BuoyBot 1.1
 // Obtains latest observation for NBDC Station 46026
-// Tweets observation from @SFBuoy
 // Saves observation to database
+// Tweets observation from @SFBuoy
+// See README.md for setup information
 
 package main
 
@@ -29,6 +30,7 @@ import (
 // First two rows of text file, fixed width delimited, used for debugging
 const header = "#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft"
 
+// URL for SF Buoy Observations
 const noaaUrl = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
 
 // Struct to store observation data

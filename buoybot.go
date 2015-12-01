@@ -65,7 +65,7 @@ var db *sql.DB
 func main() {
 	fmt.Println("Starting BuoyBot...")
 
-	// load configuration
+	// Load configuration
 	config := Config{}
 	loadConfig(&config)
 
@@ -93,7 +93,6 @@ func main() {
 	saveObservation(observation)
 
 	// Tweet observation at 0000, 0600, 0900, 1200, 1500, 1800 PST
-	// Cron job set to run every hour at 10 minutes past
 	t := time.Now()
 	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 9 || t.Hour() == 12 || t.Hour() == 15 || t.Hour() == 18 {
 		tweetCurrent(config, observation)

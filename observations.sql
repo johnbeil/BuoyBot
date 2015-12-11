@@ -16,3 +16,6 @@ CREATE TABLE observations
 
 ALTER TABLE observations
    ADD COLUMN rowcreated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT clock_timestamp();
+
+-- Extract CSV
+\copy (SELECT observationtime, significantwaveheight, dominantwaveperiod, averageperiod, airtemperature, watertemperature FROM observations) TO data.csv CSV DELIMITER ','

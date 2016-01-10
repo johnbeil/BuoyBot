@@ -1,4 +1,4 @@
-// Copyright (c) 2015 John Beil.
+// Copyright (c) 2016 John Beil.
 // Use of this source code is governed by the MIT License.
 // The MIT license can be found in the LICENSE file.
 

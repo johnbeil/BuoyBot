@@ -31,9 +31,9 @@ import (
 const header = "#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft"
 
 // URL for SF Buoy Observations
-const noaaUrl = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
+const noaaURL = "http://www.ndbc.noaa.gov/data/realtime2/46026.txt"
 
-// Struct to store observation data
+// Observation struct stores buoy observation data
 type Observation struct {
 	Date                  time.Time
 	WindDirection         string
@@ -46,7 +46,7 @@ type Observation struct {
 	WaterTemperature      float64
 }
 
-// Struct to store Twitter and Database credentials
+// Config struct stores Twitter and Database credentials
 type Config struct {
 	UserName         string `json:"UserName"`
 	ConsumerKey      string `json:"ConsumerKey"`
@@ -107,7 +107,7 @@ func main() {
 
 // Fetches and parses latest NBDC observation and returns data in Observation struct
 func getObservation() Observation {
-	observationRaw := getDataFromURL(noaaUrl)
+	observationRaw := getDataFromURL(noaaURL)
 	observationData := parseData(observationRaw)
 	return observationData
 }
@@ -170,7 +170,7 @@ func parseData(d []byte) Observation {
 	// Other lines are not needed
 
 	// Extracts relevant data into variable for processing
-	var data string = string(d[188:281])
+	var data = string(d[188:281])
 	// convert most recent observation into array of strings
 	datafield := strings.Fields(data)
 
@@ -283,12 +283,12 @@ func direction(deg int64) string {
 	}
 }
 
-// Given Float64, round input to nearest integer and return Float64
+// Round input to nearest integer given Float64 and returns Float64
 func Round(f float64) float64 {
 	return math.Floor(f + .5)
 }
 
-// Given Float64 and Int, round input to defined number of decimals and return Float64
+// RoundPlus truncates a Float64 to a defined number of decimals given an Int and Float64, and returns a Float64
 func RoundPlus(f float64, places int) float64 {
 	shift := math.Pow(10, float64(places))
 	return Round(f*shift) / shift

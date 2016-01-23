@@ -96,6 +96,9 @@ func main() {
 	t := time.Now()
 	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 9 || t.Hour() == 12 || t.Hour() == 15 || t.Hour() == 18 {
 		tweetCurrent(config, observation)
+	} else {
+		fmt.Println("Not at update interval - not tweeting.")
+		fmt.Println("Observation is:\n", observation)
 	}
 
 	// Shutdown BuoyBot

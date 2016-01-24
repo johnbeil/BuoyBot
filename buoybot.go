@@ -59,6 +59,16 @@ type Config struct {
 	DatabaseName     string `json:"DatabaseName"`
 }
 
+// Tide stores a tide prediction from the database
+type Tide struct {
+	Date         string
+	Day          string
+	Time         string
+	PredictionFt float64
+	PredictionCm int64
+	HighLow      string
+}
+
 // Variable for database
 var db *sql.DB
 
@@ -91,6 +101,9 @@ func main() {
 
 	// Save latest observation in database
 	saveObservation(observation)
+
+	tide := getTide()
+	processTide(tide)
 
 	// Tweet observation at 0000, 0600, 0900, 1200, 1500, 1800 PST
 	t := time.Now()
@@ -292,4 +305,26 @@ func Round(f float64) float64 {
 func RoundPlus(f float64, places int) float64 {
 	shift := math.Pow(10, float64(places))
 	return Round(f*shift) / shift
+}
+
+// getTide selects the next tide prediction from the database and return a Tide struct
+func getTide() Tide {
+	var tide Tide
+	err := db.QueryRow("select date, day, time, predictionft, highlow from tidedata where datetime >= current_timestamp order by datetime limit 1").Scan(&tide.Date, &tide.Day, &tide.Time, &tide.PredictionFt, &tide.HighLow)
+	if err != nil {
+		log.Fatal("getTide function error:", err)
+	}
+	return tide
+}
+
+// processTide returns a formatted string give a Tide struct
+func processTide(t Tide) string {
+	if t.HighLow == "H" {
+		t.HighLow = "High"
+	} else {
+		t.HighLow = "Low"
+	}
+	s := "Tide: " + t.HighLow + " " + strconv.FormatFloat(float64(t.PredictionFt), 'f', 1, 64) + " at " + t.Time
+	fmt.Println(s)
+	return s
 }

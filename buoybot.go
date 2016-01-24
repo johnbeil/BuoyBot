@@ -102,8 +102,11 @@ func main() {
 	// Save latest observation in database
 	saveObservation(observation)
 
+	// Obtain next tide from database
 	tide := getTide()
-	processTide(tide)
+
+	// Format tide for inclusion in tweet
+	tidestring := processTide(tide)
 
 	// Tweet observation at 0000, 0600, 0900, 1200, 1500, 1800 PST
 	t := time.Now()
@@ -112,6 +115,7 @@ func main() {
 	} else {
 		fmt.Println("Not at update interval - not tweeting.")
 		fmt.Println("Observation is:\n", observation)
+		fmt.Println(tidestring)
 	}
 
 	// Shutdown BuoyBot
@@ -324,7 +328,7 @@ func processTide(t Tide) string {
 	} else {
 		t.HighLow = "Low"
 	}
-	s := "Tide: " + t.HighLow + " " + strconv.FormatFloat(float64(t.PredictionFt), 'f', 1, 64) + " at " + t.Time
-	fmt.Println(s)
+	s := "Tide: " + t.HighLow + " " + strconv.FormatFloat(float64(t.PredictionFt), 'f', 1, 64) + "ft at " + t.Time
+	// fmt.Println(s)
 	return s
 }

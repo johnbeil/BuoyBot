@@ -2,10 +2,11 @@
 // Use of this source code is governed by the MIT License.
 // The MIT license can be found in the LICENSE file.
 
-// BuoyBot 1.1
+// BuoyBot 1.5
 // Obtains latest observation for NBDC Station 46026
 // Saves observation to database
-// Tweets observation from @SFBuoy
+// Obtains next tide from database
+// Tweets observation and tide prediction from @SFBuoy
 // See README.md for setup information
 
 package main

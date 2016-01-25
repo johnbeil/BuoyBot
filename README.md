@@ -1,6 +1,6 @@
 # BuoyBot
-
 BuoyBot is a twitter bot that periodically tweets updates from NBDC Station 46026 (the San Francisco Buoy).
+Tide data is from NOAA Station 9414275 (Ocean Beach, San Francisco, California).
 
 BuoyBot is live on Twitter: https://twitter.com/SFBuoy
 
@@ -15,9 +15,8 @@ BuoyBot is designed to be run at pre-defined intervals via Cron. Crontab.txt con
 
 BuoyBot saves its hourly observations in a Postgres database. This needs to be configured by the user or the database code needs to be removed.
 
-
 ## Development Roadmap:
-- Add tide predictions for Ocean Beach, San Francisco (NOAA Station 9414275)
+- Use environment variables rather than config.json for credentials
 - Reply to @ mentions with latest observation
 - Tweet graphs weekly with historical waveheight observations
 - Tweet graphs monthly with relevant observation data

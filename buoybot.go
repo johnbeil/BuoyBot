@@ -105,17 +105,19 @@ func main() {
 	// Obtain next tide from database
 	tide := getTide()
 
-	// Format tide for inclusion in tweet
-	tidestring := processTide(tide)
+	// Format tide
+	tideOutput := processTide(tide)
+
+	// Format observation given Observation and tideOutput
+	observationOutput := formatObservation(observation, tideOutput)
 
 	// Tweet observation at 0000, 0600, 0900, 1200, 1500, 1800 PST
 	t := time.Now()
 	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 9 || t.Hour() == 12 || t.Hour() == 15 || t.Hour() == 18 {
-		tweetCurrent(config, observation)
+		tweetCurrent(config, observationOutput)
 	} else {
 		fmt.Println("Not at update interval - not tweeting.")
-		fmt.Println("Observation is:\n", observation)
-		fmt.Println(tidestring)
+		fmt.Println(observationOutput)
 	}
 
 	// Shutdown BuoyBot
@@ -138,16 +140,17 @@ func saveObservation(o Observation) {
 }
 
 // Given config and observation, tweets latest update
-func tweetCurrent(config Config, o Observation) {
+func tweetCurrent(config Config, o string) {
+	fmt.Println("Preparing to tweet observation...")
 	var api *anaconda.TwitterApi
 	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
 	anaconda.SetConsumerKey(config.ConsumerKey)
 	anaconda.SetConsumerSecret(config.ConsumerSecret)
-	observationOutput := formatObservation(o)
-	tweet, err := api.PostTweet(observationOutput, nil)
+	tweet, err := api.PostTweet(o, nil)
 	if err != nil {
 		fmt.Println("update error:", err)
 	} else {
+		fmt.Println("Tweet posted:")
 		fmt.Println(tweet.Text)
 	}
 }
@@ -251,8 +254,8 @@ func parseData(d []byte) Observation {
 }
 
 // Given Observation returns formatted text for tweet
-func formatObservation(o Observation) string {
-	output := fmt.Sprint(o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F")
+func formatObservation(o Observation, t string) string {
+	output := fmt.Sprint(o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F\n", t)
 	return output
 }
 

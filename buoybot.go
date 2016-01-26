@@ -255,8 +255,8 @@ func parseData(d []byte) Observation {
 }
 
 // Given Observation returns formatted text for tweet
-func formatObservation(o Observation, t string) string {
-	output := fmt.Sprint(o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F\n", t)
+func formatObservation(o Observation, tide string) string {
+	output := fmt.Sprint(o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\n", tide, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F")
 	return output
 }
 

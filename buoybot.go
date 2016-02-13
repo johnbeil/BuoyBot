@@ -112,9 +112,9 @@ func main() {
 	// Format observation given Observation and tideOutput
 	observationOutput := formatObservation(observation, tideOutput)
 
-	// Tweet observation at 0000, 0600, 0900, 1200, 1500, 1800 PST
+	// Tweet observation at 0000, 0600, 0800, 1000, 1200, 1400, 1600|| 1800 PST
 	t := time.Now()
-	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 9 || t.Hour() == 12 || t.Hour() == 15 || t.Hour() == 18 {
+	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 8 || t.Hour() == 10 || t.Hour() == 12 || t.Hour() == 14 || t.Hour() == 16 || t.Hour() == 18 {
 		tweetCurrent(config, observationOutput)
 	} else {
 		fmt.Println("Not at update interval - not tweeting.")

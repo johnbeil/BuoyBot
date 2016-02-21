@@ -8,6 +8,7 @@
 // Obtains next tide from database
 // Tweets observation and tide prediction from @SFBuoy
 // See README.md for setup information
+// Note tide data from github.com/johnbeil/tidecrawler
 
 package main
 
@@ -54,7 +55,7 @@ type Config struct {
 	ConsumerSecret   string `json:"ConsumerSecret"`
 	Token            string `json:"Token"`
 	TokenSecret      string `json:"TokenSecret"`
-	DatabaseUrl      string `json:"DatabaseUrl"`
+	DatabaseURL      string `json:"DatabaseUrl"`
 	DatabaseUser     string `json:"DatabaseUser"`
 	DatabasePassword string `json:"DatabasePassword"`
 	DatabaseName     string `json:"DatabaseName"`
@@ -82,7 +83,7 @@ func main() {
 
 	// Load database
 	dbinfo := fmt.Sprintf("user=%s password=%s host=%s dbname=%s sslmode=disable",
-		config.DatabaseUser, config.DatabasePassword, config.DatabaseUrl, config.DatabaseName)
+		config.DatabaseUser, config.DatabasePassword, config.DatabaseURL, config.DatabaseName)
 	var err error
 	db, err = sql.Open("postgres", dbinfo)
 	if err != nil {
@@ -173,7 +174,7 @@ func getDataFromURL(url string) (body []byte) {
 
 // Given path to config.js file, loads credentials
 func loadConfig(config *Config) {
-	// load path to config from CONFIGPATH environment variable
+	// Load path to config from CONFIGPATH environment variable
 	configpath := os.Getenv("CONFIGPATH")
 	file, _ := os.Open(configpath)
 	decoder := json.NewDecoder(file)
@@ -192,36 +193,36 @@ func parseData(d []byte) Observation {
 
 	// Extracts relevant data into variable for processing
 	var data = string(d[188:281])
-	// convert most recent observation into array of strings
+	// Convert most recent observation into array of strings
 	datafield := strings.Fields(data)
 
-	// convert wave height from meters to feet
+	// Convert wave height from meters to feet
 	waveheightmeters, _ := strconv.ParseFloat(datafield[8], 64)
 	waveheightfeet := waveheightmeters * 3.28084
 
-	// convert wave direction from degrees to cardinal
+	// Convert wave direction from degrees to cardinal
 	wavedegrees, _ := strconv.ParseInt(datafield[11], 0, 64)
 	wavecardinal := direction(wavedegrees)
 
-	// convert wind speed from m/s to mph
+	// Convert wind speed from m/s to mph
 	windspeedms, _ := strconv.ParseFloat((datafield[6]), 64)
 	windspeedmph := windspeedms / 0.44704
 
-	// convert wind direction from degrees to cardinal
+	// Convert wind direction from degrees to cardinal
 	winddegrees, _ := strconv.ParseInt(datafield[5], 0, 64)
 	windcardinal := direction(winddegrees)
 
-	// convert air temp from C to F
+	// Convert air temp from C to F
 	airtempC, _ := strconv.ParseFloat(datafield[13], 64)
 	airtempF := airtempC*9/5 + 32
 	airtempF = RoundPlus(airtempF, 1)
 
-	// convert water temp from C to F
+	// Convert water temp from C to F
 	watertempC, _ := strconv.ParseFloat(datafield[14], 64)
 	watertempF := watertempC*9/5 + 32
 	watertempF = RoundPlus(watertempF, 1)
 
-	// process date/time and convert to PST
+	// Process date/time and convert to PST
 	rawtime := strings.Join(datafield[0:5], " ")
 	t, err := time.Parse("2006 01 02 15 04", rawtime)
 	if err != nil {
@@ -254,13 +255,13 @@ func parseData(d []byte) Observation {
 	return o
 }
 
-// Given Observation returns formatted text for tweet
+// Given Observation and tide string, returns formatted text for tweet
 func formatObservation(o Observation, tide string) string {
 	output := fmt.Sprint(o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\n", tide, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F")
 	return output
 }
 
-// given degrees returns cardinal direction
+// Given degrees returns cardinal direction or error message
 func direction(deg int64) string {
 	switch {
 	case deg < 0:
@@ -304,18 +305,18 @@ func direction(deg int64) string {
 	}
 }
 
-// Round input to nearest integer given Float64 and returns Float64
+// Round input to nearest integer given Float64 and return Float64
 func Round(f float64) float64 {
 	return math.Floor(f + .5)
 }
 
-// RoundPlus truncates a Float64 to a defined number of decimals given an Int and Float64, and returns a Float64
+// RoundPlus truncates a Float64 to a specified number of decimals given Int and Float64, returning Float64
 func RoundPlus(f float64, places int) float64 {
 	shift := math.Pow(10, float64(places))
 	return Round(f*shift) / shift
 }
 
-// getTide selects the next tide prediction from the database and return a Tide struct
+// getTide selects the next tide prediction from the database and returns a Tide struct
 func getTide() Tide {
 	var tide Tide
 	err := db.QueryRow("select date, day, time, predictionft, highlow from tidedata where datetime >= current_timestamp order by datetime limit 1").Scan(&tide.Date, &tide.Day, &tide.Time, &tide.PredictionFt, &tide.HighLow)
@@ -325,7 +326,7 @@ func getTide() Tide {
 	return tide
 }
 
-// processTide returns a formatted string give a Tide struct
+// processTide returns a formatted string given a Tide struct
 func processTide(t Tide) string {
 	if t.HighLow == "H" {
 		t.HighLow = "High"

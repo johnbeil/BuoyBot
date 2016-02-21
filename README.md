@@ -15,6 +15,10 @@ BuoyBot is designed to be run at pre-defined intervals via Cron. Crontab.txt con
 
 BuoyBot saves its hourly observations in a Postgres database. This needs to be configured by the user or the database code needs to be removed.
 
+## Tide Data Note
+Buoybot presumes that the database contains relevant tide predictions. This data can be obtained from github.com/johnbeil/tidecrawler
+
+
 ## Development Roadmap:
 - Use environment variables rather than config.json for credentials
 - Reply to @ mentions with latest observation

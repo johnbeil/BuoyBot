@@ -25,3 +25,6 @@ SELECT * FROM observations ORDER BY significantwaveheight DESC LIMIT 1;
 
 -- Select Max wave height in given year
 SELECT * FROM observations WHERE EXTRACT(year FROM "rowcreated") = 2016 ORDER BY significantwaveheight DESC LIMIT 1;
+
+-- Select last 10 observations
+SELECT * FROM observations ORDER BY rowcreated DESC LIMIT 10;

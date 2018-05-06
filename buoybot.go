@@ -113,9 +113,9 @@ func main() {
 	// Format observation given Observation and tideOutput
 	observationOutput := formatObservation(observation, tideOutput)
 
-	// Tweet observation at 0000, 0600, 0800, 1000, 1200, 1400, 1600, 1800 PST
+	// Tweet observation at 0000 or between 0600 to 1800
 	t := time.Now()
-	if t.Hour() == 0 || t.Hour() == 6 || t.Hour() == 8 || t.Hour() == 10 || t.Hour() == 12 || t.Hour() == 14 || t.Hour() == 16 || t.Hour() == 18 {
+	if t.Hour() == 0 || t.Hour() >= 6 && t.Hour() <= 18 {
 		tweetCurrent(config, observationOutput)
 	} else {
 		fmt.Println("Not at update interval - not tweeting.")
@@ -144,10 +144,7 @@ func saveObservation(o Observation) {
 // Given config and observation, tweets latest update
 func tweetCurrent(config Config, o string) {
 	fmt.Println("Preparing to tweet observation...")
-	var api *anaconda.TwitterApi
-	api = anaconda.NewTwitterApi(config.Token, config.TokenSecret)
-	anaconda.SetConsumerKey(config.ConsumerKey)
-	anaconda.SetConsumerSecret(config.ConsumerSecret)
+	api := anaconda.NewTwitterApiWithCredentials(config.Token, config.TokenSecret, config.ConsumerKey, config.ConsumerSecret)
 	tweet, err := api.PostTweet(o, nil)
 	if err != nil {
 		fmt.Println("update error:", err)

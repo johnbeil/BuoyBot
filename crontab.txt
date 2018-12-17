@@ -10,4 +10,4 @@
 
 # Add to crontab by running `crontab -e`
 
-10 * * * * . $HOME/.profile; /home/deploy/gocode/bin/BuoyBot > /home/deploy/buoybot.log 2>&1
+10 * * * * . $HOME/.profile; /home/deploy/go/bin/BuoyBot > /home/deploy/buoybot.log 2>&1

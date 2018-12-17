@@ -114,6 +114,7 @@ func main() {
 	observationOutput := formatObservation(observation, tideOutput)
 
 	// Tweet observation between time range 0000 to 2400
+	t := time.Now()
 	if t.Hour() >= 0 && t.Hour() <= 24 {
 		tweetCurrent(config, observationOutput)
 	} else {

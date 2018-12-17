@@ -113,9 +113,8 @@ func main() {
 	// Format observation given Observation and tideOutput
 	observationOutput := formatObservation(observation, tideOutput)
 
-	// Tweet observation at 0000 or between 0600 to 1800
-	t := time.Now()
-	if t.Hour() == 0 || t.Hour() >= 6 && t.Hour() <= 18 {
+	// Tweet observation between time range 0000 to 2400
+	if t.Hour() >= 0 && t.Hour() <= 24 {
 		tweetCurrent(config, observationOutput)
 	} else {
 		fmt.Println("Not at update interval - not tweeting.")

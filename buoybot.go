@@ -240,13 +240,13 @@ func parseData(d []byte) Observation {
 	o.DominantWavePeriod, err = strconv.Atoi(datafield[9])
 	if err != nil {
 		fmt.Println(err)
-		o.AveragePeriod = "n/a"
+		o.AveragePeriod = 0
 		// log.Fatal("o.DominantWavePeriod:", err)
 	}
 	o.AveragePeriod, err = strconv.ParseFloat(datafield[10], 64)
 	if err != nil {
 		fmt.Println(err)
-		o.AveragePeriod = "n/a"
+		o.AveragePeriod = 0
 		// log.Fatal("o.AveragePeriod:", err)
 	}
 	o.MeanWaveDirection = wavecardinal

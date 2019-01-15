@@ -239,11 +239,15 @@ func parseData(d []byte) Observation {
 	o.SignificantWaveHeight = waveheightfeet
 	o.DominantWavePeriod, err = strconv.Atoi(datafield[9])
 	if err != nil {
-		log.Fatal("o.DominantWavePeriod:", err)
+		fmt.Println(err)
+		o.AveragePeriod = "n/a"
+		// log.Fatal("o.DominantWavePeriod:", err)
 	}
 	o.AveragePeriod, err = strconv.ParseFloat(datafield[10], 64)
 	if err != nil {
-		log.Fatal("o.AveragePeriod:", err)
+		fmt.Println(err)
+		o.AveragePeriod = "n/a"
+		// log.Fatal("o.AveragePeriod:", err)
 	}
 	o.MeanWaveDirection = wavecardinal
 	o.AirTemperature = airtempF

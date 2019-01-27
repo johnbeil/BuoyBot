@@ -224,6 +224,7 @@ func parseData(d []byte) Observation {
 	windspeedmph := windspeedms / 0.44704
 
 	// Convert wave height from meters to feet
+
 	waveheightmeters, _ := strconv.ParseFloat(datafield[8], 64)
 	waveheightfeet := waveheightmeters * 3.28084
 
@@ -265,6 +266,9 @@ func parseData(d []byte) Observation {
 	o.MeanWaveDirection = wavecardinal
 	o.AirTemperature = airtempF
 	o.WaterTemperature = watertempF
+
+	// Print loaded observations
+	fmt.Printf("%+v\n", o)
 
 	// Return populated observation struct
 	return o

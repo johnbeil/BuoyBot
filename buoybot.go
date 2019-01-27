@@ -107,9 +107,6 @@ func main() {
 	var observation Observation
 	observation = getObservation()
 
-	// Save current observation in database
-	saveObservation(observation)
-
 	// Obtain next tide from database
 	tide := getTide()
 
@@ -120,11 +117,14 @@ func main() {
 	observationOutput := formatObservation(observation, tideOutput)
 
 	// Tweet observation unless test argument passed via command line.
+	// Only save onservation to database if not in test mode.
 	if *arg == true {
 		fmt.Println("Test mode: Tweet disabled.")
 		fmt.Println(observationOutput)
 	} else {
 		tweetCurrent(config, observationOutput)
+		// Save current observation in database
+		saveObservation(observation)
 	}
 
 	// Shutdown BuoyBot
@@ -193,11 +193,6 @@ func parseData(d []byte) Observation {
 	// Latest observation data is in the third line
 	// Other lines are not needed
 
-	// Get prior observation and store in struct
-	var lastObservation Observation
-	lastObservation = getLastObservation()
-	fmt.Printf("%+v\n", lastObservation)
-
 	// Extracts relevant data into variable for processing
 	var data = string(d[188:281])
 	// Convert most recent observation into array of strings
@@ -241,6 +236,12 @@ func parseData(d []byte) Observation {
 	watertempC, err := strconv.ParseFloat(datafield[14], 64)
 	if err != nil {
 		fmt.Println(err)
+		// Get prior observation and store in struct
+		var lastObservation Observation
+		lastObservation = getLastObservation()
+		fmt.Printf("Last observation:\n%+v\n", lastObservation)
+		watertempC := lastObservation.WaterTemperature
+		fmt.Println("Prior temp is: ", watertempC)
 	}
 	watertempF := watertempC*9/5 + 32
 	watertempF = RoundPlus(watertempF, 1)

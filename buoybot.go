@@ -196,7 +196,7 @@ func parseData(d []byte) Observation {
 	// Get prior observation and store in struct
 	var lastObservation Observation
 	lastObservation = getLastObservation()
-	fmt.Print(lastObservation)
+	fmt.Printf("%+v\n", lastObservation)
 
 	// Extracts relevant data into variable for processing
 	var data = string(d[188:281])

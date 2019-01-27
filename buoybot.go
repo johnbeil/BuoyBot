@@ -2,7 +2,7 @@
 // Use of this source code is governed by the MIT License.
 // The MIT license can be found in the LICENSE file.
 
-// BuoyBot 1.5
+// BuoyBot 1.6
 // Obtains latest observation for NBDC Station 46026
 // Saves observation to database
 // Obtains next tide from database
@@ -15,6 +15,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -74,6 +75,7 @@ type Tide struct {
 // Variable for database
 var db *sql.DB
 
+// BuoyBot execution
 func main() {
 	fmt.Println("Starting BuoyBot...")
 
@@ -97,11 +99,15 @@ func main() {
 		log.Fatal("Error: Could not establish connection with the database.", err)
 	}
 
-	// Get latest observation and store in struct
+	// Parse command line argument.
+	arg := flag.Bool("test", false, "a boolean value")
+	flag.Parse()
+
+	// Get current observation and store in struct
 	var observation Observation
 	observation = getObservation()
 
-	// Save latest observation in database
+	// Save current observation in database
 	saveObservation(observation)
 
 	// Obtain next tide from database
@@ -113,13 +119,12 @@ func main() {
 	// Format observation given Observation and tideOutput
 	observationOutput := formatObservation(observation, tideOutput)
 
-	// Tweet observation between time range 0000 to 2400
-	t := time.Now()
-	if t.Hour() >= 0 && t.Hour() <= 24 {
-		tweetCurrent(config, observationOutput)
-	} else {
-		fmt.Println("Not at update interval - not tweeting.")
+	// Tweet observation unless test argument passed via command line.
+	if *arg == true {
+		fmt.Println("Test mode: Tweet disabled.")
 		fmt.Println(observationOutput)
+	} else {
+		tweetCurrent(config, observationOutput)
 	}
 
 	// Shutdown BuoyBot
@@ -188,36 +193,15 @@ func parseData(d []byte) Observation {
 	// Latest observation data is in the third line
 	// Other lines are not needed
 
+	// Get prior observation and store in struct
+	var lastObservation Observation
+	lastObservation = getLastObservation()
+	fmt.Print(lastObservation)
+
 	// Extracts relevant data into variable for processing
 	var data = string(d[188:281])
 	// Convert most recent observation into array of strings
 	datafield := strings.Fields(data)
-
-	// Convert wave height from meters to feet
-	waveheightmeters, _ := strconv.ParseFloat(datafield[8], 64)
-	waveheightfeet := waveheightmeters * 3.28084
-
-	// Convert wave direction from degrees to cardinal
-	wavedegrees, _ := strconv.ParseInt(datafield[11], 0, 64)
-	wavecardinal := direction(wavedegrees)
-
-	// Convert wind speed from m/s to mph
-	windspeedms, _ := strconv.ParseFloat((datafield[6]), 64)
-	windspeedmph := windspeedms / 0.44704
-
-	// Convert wind direction from degrees to cardinal
-	winddegrees, _ := strconv.ParseInt(datafield[5], 0, 64)
-	windcardinal := direction(winddegrees)
-
-	// Convert air temp from C to F
-	airtempC, _ := strconv.ParseFloat(datafield[13], 64)
-	airtempF := airtempC*9/5 + 32
-	airtempF = RoundPlus(airtempF, 1)
-
-	// Convert water temp from C to F
-	watertempC, _ := strconv.ParseFloat(datafield[14], 64)
-	watertempF := watertempC*9/5 + 32
-	watertempF = RoundPlus(watertempF, 1)
 
 	// Process date/time and convert to PST
 	rawtime := strings.Join(datafield[0:5], " ")
@@ -230,6 +214,35 @@ func parseData(d []byte) Observation {
 		log.Fatal("error processing location", err)
 	}
 	t = t.In(loc)
+
+	// Convert wind direction from degrees to cardinal
+	winddegrees, _ := strconv.ParseInt(datafield[5], 0, 64)
+	windcardinal := direction(winddegrees)
+
+	// Convert wind speed from m/s to mph
+	windspeedms, _ := strconv.ParseFloat((datafield[6]), 64)
+	windspeedmph := windspeedms / 0.44704
+
+	// Convert wave height from meters to feet
+	waveheightmeters, _ := strconv.ParseFloat(datafield[8], 64)
+	waveheightfeet := waveheightmeters * 3.28084
+
+	// Convert wave direction from degrees to cardinal
+	wavedegrees, _ := strconv.ParseInt(datafield[11], 0, 64)
+	wavecardinal := direction(wavedegrees)
+
+	// Convert air temp from C to F
+	airtempC, _ := strconv.ParseFloat(datafield[13], 64)
+	airtempF := airtempC*9/5 + 32
+	airtempF = RoundPlus(airtempF, 1)
+
+	// Convert water temp from C to F
+	watertempC, err := strconv.ParseFloat(datafield[14], 64)
+	if err != nil {
+		fmt.Println(err)
+	}
+	watertempF := watertempC*9/5 + 32
+	watertempF = RoundPlus(watertempF, 1)
 
 	// Create Observation struct and populate with parsed data
 	var o Observation
@@ -253,6 +266,7 @@ func parseData(d []byte) Observation {
 	o.AirTemperature = airtempF
 	o.WaterTemperature = watertempF
 
+	// Return populated observation struct
 	return o
 }
 
@@ -260,6 +274,50 @@ func parseData(d []byte) Observation {
 func formatObservation(o Observation, tide string) string {
 	output := fmt.Sprint(o.Date.Format(time.RFC822), "\nSwell: ", strconv.FormatFloat(float64(o.SignificantWaveHeight), 'f', 1, 64), "ft at ", o.DominantWavePeriod, " sec from ", o.MeanWaveDirection, "\nWind: ", strconv.FormatFloat(float64(o.WindSpeed), 'f', 0, 64), "mph from ", o.WindDirection, "\n", tide, "\nTemp: Air ", o.AirTemperature, "F / Water: ", o.WaterTemperature, "F")
 	return output
+}
+
+//getLastObservation selects the prior observation from the database and returns an Observation struct
+func getLastObservation() Observation {
+	var o Observation
+	err := db.QueryRow("select observationtime, winddirection, windspeed, significantwaveheight, dominantwaveperiod, averageperiod, meanwavedirection, airtemperature, watertemperature from observations order by observationtime desc limit 1").Scan(&o.Date, &o.WindDirection, &o.WindSpeed, &o.SignificantWaveHeight, &o.DominantWavePeriod, &o.AveragePeriod, &o.MeanWaveDirection, &o.AirTemperature, &o.WaterTemperature)
+	if err != nil {
+		log.Fatal("getLastObservation function error:", err)
+	}
+	return o
+}
+
+// getTide selects the next tide prediction from the database and returns a Tide struct
+// server time and
+func getTide() Tide {
+	var tide Tide
+	err := db.QueryRow("select date, day, time, predictionft, highlow from tidedata where datetime >= current_timestamp - interval '8 hours' order by datetime limit 1").Scan(&tide.Date, &tide.Day, &tide.Time, &tide.PredictionFt, &tide.HighLow)
+	if err != nil {
+		log.Fatal("getTide function error:", err)
+	}
+	return tide
+}
+
+// processTide returns a formatted string given a Tide struct
+func processTide(t Tide) string {
+	if t.HighLow == "H" {
+		t.HighLow = "High"
+	} else {
+		t.HighLow = "Low"
+	}
+	s := "Tide: " + t.HighLow + " " + strconv.FormatFloat(float64(t.PredictionFt), 'f', 1, 64) + "ft at " + t.Time
+	// fmt.Println(s)
+	return s
+}
+
+// Round input to nearest integer given Float64 and return Float64
+func Round(f float64) float64 {
+	return math.Floor(f + .5)
+}
+
+// RoundPlus truncates a Float64 to a specified number of decimals given Int and Float64, returning Float64
+func RoundPlus(f float64, places int) float64 {
+	shift := math.Pow(10, float64(places))
+	return Round(f*shift) / shift
 }
 
 // Given degrees returns cardinal direction or error message
@@ -304,37 +362,4 @@ func direction(deg int64) string {
 	default:
 		return "ERROR - DEGREE GREATER THAN 360"
 	}
-}
-
-// Round input to nearest integer given Float64 and return Float64
-func Round(f float64) float64 {
-	return math.Floor(f + .5)
-}
-
-// RoundPlus truncates a Float64 to a specified number of decimals given Int and Float64, returning Float64
-func RoundPlus(f float64, places int) float64 {
-	shift := math.Pow(10, float64(places))
-	return Round(f*shift) / shift
-}
-
-// getTide selects the next tide prediction from the database and returns a Tide struct
-func getTide() Tide {
-	var tide Tide
-	err := db.QueryRow("select date, day, time, predictionft, highlow from tidedata where datetime >= current_timestamp order by datetime limit 1").Scan(&tide.Date, &tide.Day, &tide.Time, &tide.PredictionFt, &tide.HighLow)
-	if err != nil {
-		log.Fatal("getTide function error:", err)
-	}
-	return tide
-}
-
-// processTide returns a formatted string given a Tide struct
-func processTide(t Tide) string {
-	if t.HighLow == "H" {
-		t.HighLow = "High"
-	} else {
-		t.HighLow = "Low"
-	}
-	s := "Tide: " + t.HighLow + " " + strconv.FormatFloat(float64(t.PredictionFt), 'f', 1, 64) + "ft at " + t.Time
-	// fmt.Println(s)
-	return s
 }

@@ -7,7 +7,7 @@ BuoyBot is live on Twitter: https://twitter.com/SFBuoy
 Feature requests and code contributions are welcome.
 
 ## Usage
-All testing has been done on Ubuntu 14.04 LTS.
+All testing has been done on Ubuntu 18.04 LTS.
 
 BuoyBot runs at 10 minutes past the hour since NBDC observations are taken at 50 minutes past the hour and updates are available approximately 15 minutes thereafter.
 
@@ -21,6 +21,4 @@ Buoybot presumes that the database contains relevant tide predictions. This data
 
 ## Development Roadmap:
 - Use environment variables rather than config.json for credentials
-- Reply to @ mentions with latest observation
-- Tweet graphs weekly with historical waveheight observations
-- Tweet graphs monthly with relevant observation data
+- Tweet at high and low tides
